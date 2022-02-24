@@ -277,6 +277,7 @@ void setup()
   server.on("/send-message", HTTP_POST, sendUartMessageHandler);
 
   server.onNotFound(notFoundHandler);
+  DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");
   server.begin();
 }
 

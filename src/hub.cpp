@@ -185,6 +185,7 @@ void uartMessageHandler()
     if (power != current_power_state)
     {
       power_changed_time = millis();
+      power = current_power_state;
       digitalWrite(LED_BUILTIN, !power);
       powerModeChangeAction(5);
       powerModeChangeAction(12);

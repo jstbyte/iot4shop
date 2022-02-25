@@ -1,5 +1,11 @@
 #ifdef HUB
 #include <Arduino.h>
+
+/* Fixed SPIFFS Errors */
+#include <FS.h>
+#define SPIFFS LittleFS
+#include <LittleFS.h>
+
 #ifdef ESP32
 #include <WiFi.h>
 #include <AsyncTCP.h>
@@ -74,10 +80,59 @@ uint8_t pinFromIndex(uint8_t index)
   }
 }
 
+String getContentType(String path)
+{
+  if (path.endsWith(".js.gz"))
+  {
+    return "application/javascript";
+  }
+  else if (path.endsWith(".css.gz"))
+  {
+    return "text/css";
+  }
+  else if (path.endsWith(".html.gz"))
+  {
+    return "text/html";
+  }
+  else
+  {
+    return "";
+  }
+}
+
 void notFoundHandler(AsyncWebServerRequest *req)
 {
   req->send(404, "text/plain", "Not found!");
 }
+
+void indexPageHandler(AsyncWebServerRequest *req)
+{
+  String path = "/index.html.gz";
+
+  if (LittleFS.exists(path))
+  {
+    auto *response = req->beginResponse(LittleFS, path, "text/html");
+    response->addHeader("Content-Encoding", "gzip");
+    req->send(response);
+    return;
+  }
+  notFoundHandler(req);
+};
+
+void staticAssetsHandler(AsyncWebServerRequest *req)
+{
+  /* REG_EX = "^\\/assets\\/(.*)$" */
+  String path = "/assets/" + req->pathArg(0) + ".gz";
+
+  if (LittleFS.exists(path))
+  {
+    auto *response = req->beginResponse(LittleFS, path, getContentType(path));
+    response->addHeader("Content-Encoding", "gzip");
+    req->send(response);
+    return;
+  }
+  notFoundHandler(req);
+};
 
 void pinStateHandler(AsyncWebServerRequest *req)
 {
@@ -265,10 +320,13 @@ void setup()
   WiFi.mode(WIFI_AP_STA);
   WiFi.begin(ssid_sta, password);
   Serial.begin(9600);
+  LittleFS.begin();
 
   WiFi.setAutoReconnect(true);
   WiFi.persistent(true);
 
+  server.on("/", HTTP_GET, indexPageHandler);
+  server.on("^\\/assets\\/(.*)$", HTTP_GET, staticAssetsHandler);
   server.on("^\\/pin\\/(12|13|14|5)\\/(high|low|change)$", HTTP_GET, pinStateHandler);
   server.on("^\\/pin\\/(12|13|14|5)$", HTTP_GET, pinStatusHandler);
   server.on("/power", HTTP_GET, powerStatusHandler);

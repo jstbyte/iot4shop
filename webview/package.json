@@ -14,7 +14,6 @@
   "devDependencies": {
     "@preact/preset-vite": "^2.1.5",
     "autoprefixer": "^10.4.2",
-    "brotli-cli": "^1.0.3",
     "cpy-cli": "^3.1.1",
     "daisyui": "^2.2.1",
     "gzip-cli": "^1.2.0",

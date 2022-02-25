@@ -86,18 +86,41 @@ const getRelativeTime = (time_ms) => {
 };
 
 const PowerStatus = () => {
-  const [power, setPower] = useState({ state: 'DC', duration: 'loading...' });
+  const [power, setPower] = useState({
+    state: 'DC',
+    duration: 'loading...',
+    duration_ms: -1,
+  });
 
   const getStatus = async () => {
     setPower((_state) => ({ ..._state, duration: 'loading...' }));
     const resp = await (
       await (await fetch(`${API_URL}power`)).text()
     ).split(':');
-    setPower({ state: resp[0], duration: msToTime(resp[1]) });
+    setPower({
+      state: resp[0],
+      duration_ms: parseInt(resp[1]),
+      duration: msToTime(resp[1]),
+    });
   };
 
   useEffect(() => {
     getStatus();
+
+    const tickTheMS = () => {
+      setPower((s) => ({
+        ...s,
+        duration_ms: s.duration_ms + 100,
+        duration: msToTime(s.duration_ms + 100),
+      }));
+    };
+
+    const tick_timer = setInterval(tickTheMS, 100);
+    const update_timer = setInterval(getStatus, 30000);
+    return () => {
+      clearInterval(tick_timer);
+      clearInterval(update_timer);
+    };
   }, []);
 
   return (
@@ -200,7 +223,7 @@ const App = () => {
         <PowerStatus />
         <Button pin={5} label='Tube Light' />
         <Button pin={13} label='Secondary Light' />
-        <Button pin={12} label='Fan' />
+        <Button pin={12} label='Ceiling Fan' />
         <Button pin={14} label='Empty!' />
       </div>
     </div>

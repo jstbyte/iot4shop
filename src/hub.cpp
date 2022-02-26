@@ -94,6 +94,14 @@ String getContentType(String path)
   {
     return "text/html";
   }
+  else if (path.endsWith(".png.gz"))
+  {
+    return "image/png";
+  }
+  else if (path.endsWith(".svg.gz"))
+  {
+    return "image/svg";
+  }
   else
   {
     return "";
@@ -105,13 +113,11 @@ void notFoundHandler(AsyncWebServerRequest *req)
   req->send(404, "text/plain", "Not found!");
 }
 
-void indexPageHandler(AsyncWebServerRequest *req)
+void wwwRootHandler(AsyncWebServerRequest *req, String path, String contentType)
 {
-  String path = "/index.html.gz";
-
   if (LittleFS.exists(path))
   {
-    auto *response = req->beginResponse(LittleFS, path, "text/html");
+    auto *response = req->beginResponse(LittleFS, path, contentType);
     response->addHeader("Content-Encoding", "gzip");
     req->send(response);
     return;
@@ -128,6 +134,7 @@ void staticAssetsHandler(AsyncWebServerRequest *req)
   {
     auto *response = req->beginResponse(LittleFS, path, getContentType(path));
     response->addHeader("Content-Encoding", "gzip");
+    response->addHeader("Cache-Control", "max-age=86400");
     req->send(response);
     return;
   }
@@ -325,7 +332,14 @@ void setup()
   WiFi.setAutoReconnect(true);
   WiFi.persistent(true);
 
-  server.on("/", HTTP_GET, indexPageHandler);
+  // Handle index file.
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest *req)
+            { wwwRootHandler(req, "/index.html.gz", "text/html"); });
+
+  // Handle manifest.json file.
+  server.on("/manifest.json", HTTP_GET, [](AsyncWebServerRequest *req)
+            { wwwRootHandler(req, "/manifest.json.gz", "application/manifest+json"); });
+
   server.on("^\\/assets\\/(.*)$", HTTP_GET, staticAssetsHandler);
   server.on("^\\/pin\\/(12|13|14|5)\\/(high|low|change)$", HTTP_GET, pinStateHandler);
   server.on("^\\/pin\\/(12|13|14|5)$", HTTP_GET, pinStatusHandler);

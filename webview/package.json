@@ -6,7 +6,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "ship": "gzip dist/**/*.{css,js,html} && cpy \"**/*.gz\" ../../data --parents --cwd=dist"
+    "ship": "gzip dist/**/*.{css,js,html,png,json} && cpy \"**/*.gz\" ../../data --parents --cwd=dist"
   },
   "dependencies": {
     "preact": "^10.5.15"

@@ -17,6 +17,7 @@
 #include <ArduinoJson.h>
 #include <IRrecv.h>
 #include <IRutils.h>
+#include <AsyncElegantOTA.h>
 
 #define IR_POWER 0x1FE48B7
 #define IR_EQ 0x1FE20DF
@@ -348,6 +349,7 @@ void setup()
   server.on("^\\/power-saver\\/(12|13|14|5)$", HTTP_GET, powerModeStatusHandler);
   server.on("/send-message", HTTP_POST, sendUartMessageHandler);
 
+  AsyncElegantOTA.begin(&server);
   server.onNotFound(notFoundHandler);
   DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");
   server.begin();

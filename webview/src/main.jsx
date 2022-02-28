@@ -33,58 +33,6 @@ function msToTime(ms) {
   //return pad(hrs) + ':' + pad(mins) + ':' + pad(secs) + '.' + pad(_ms, 3);
 }
 
-const getRelativeTime = (time_ms) => {
-  // Convert to a positive integer
-  const time = Math.abs(time_ms);
-
-  // Define humanTime and units
-  let humanTime, units;
-
-  // If there are years
-  if (time > 1000 * 60 * 60 * 24 * 365) {
-    humanTime = parseInt(time / (1000 * 60 * 60 * 24 * 365), 10);
-    units = 'years';
-  }
-
-  // If there are months
-  else if (time > 1000 * 60 * 60 * 24 * 30) {
-    humanTime = parseInt(time / (1000 * 60 * 60 * 24 * 30), 10);
-    units = 'months';
-  }
-
-  // If there are weeks
-  else if (time > 1000 * 60 * 60 * 24 * 7) {
-    humanTime = parseInt(time / (1000 * 60 * 60 * 24 * 7), 10);
-    units = 'weeks';
-  }
-
-  // If there are days
-  else if (time > 1000 * 60 * 60 * 24) {
-    humanTime = parseInt(time / (1000 * 60 * 60 * 24), 10);
-    units = 'days';
-  }
-
-  // If there are hours
-  else if (time > 1000 * 60 * 60) {
-    humanTime = parseInt(time / (1000 * 60 * 60), 10);
-    units = 'hours';
-  }
-
-  // If there are minutes
-  else if (time > 1000 * 60) {
-    humanTime = parseInt(time / (1000 * 60), 10);
-    units = 'minutes';
-  }
-
-  // Otherwise, use seconds
-  else {
-    humanTime = parseInt(time / 1000, 10);
-    units = 'seconds';
-  }
-
-  return humanTime + ' ' + units;
-};
-
 const PowerStatus = () => {
   const [power, setPower] = useState({
     state: 'DC',
@@ -94,9 +42,7 @@ const PowerStatus = () => {
 
   const getStatus = async () => {
     setPower((_state) => ({ ..._state, duration: 'loading...' }));
-    const resp = await (
-      await (await fetch(`${API_URL}power`)).text()
-    ).split(':');
+    const resp = (await (await fetch(`${API_URL}power`)).text()).split(':');
     setPower({
       state: resp[0],
       duration_ms: parseInt(resp[1]),
@@ -223,8 +169,8 @@ const App = () => {
         <PowerStatus />
         <Button pin={5} label='Tube Light' />
         <Button pin={13} label='Secondary Light' />
-        <Button pin={12} label='Ceiling Fan' />
-        <Button pin={14} label='Empty!' />
+        <Button pin={14} label='Ceiling Fan' />
+        <Button pin={12} label='Work Station' />
       </div>
     </div>
   );

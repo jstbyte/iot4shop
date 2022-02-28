@@ -34,8 +34,8 @@ enum power_saver_mode_t
 };
 
 /* Global Refs */
-const char *ssid_sta = "";
-const char *password = "";
+const char *ssid_sta = "A29";
+const char *password = "A29Password";
 
 AsyncWebServer server(80);
 IRrecv irrecv(4);
@@ -324,7 +324,7 @@ void setup()
   digitalWrite(LED_BUILTIN, HIGH);
 
   irrecv.enableIRIn();
-  WiFi.mode(WIFI_AP_STA);
+  WiFi.mode(WIFI_STA);
   WiFi.begin(ssid_sta, password);
   Serial.begin(9600);
   LittleFS.begin();

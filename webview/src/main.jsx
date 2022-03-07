@@ -1,19 +1,9 @@
-import { render } from 'preact';
-import { useEffect, useState } from 'react';
+import { createContext, render } from 'preact';
+import { useEffect, useState } from 'preact/compat';
+import { POWER_MODE, POWER_STATE, usePinState } from './Store';
 import './index.css';
 
-const API_URL = '/';
-
-const POWER_MODE = {
-  OFF: 'off',
-  ON: 'on',
-  TURBO: 'turbo',
-};
-
-const POWER_STATE = {
-  DC: 'DC',
-  AC: 'AC',
-};
+const API_URL = 'http://192.168.43.153/';
 
 function msToTime(ms) {
   // Pad to 2 or 3 digits, default is 2
@@ -88,37 +78,7 @@ const PowerStatus = () => {
   );
 };
 
-const Button = ({ pin, label }) => {
-  const [state, setState] = useState(false);
-  const [powerMode, setPowerMode] = useState(POWER_MODE.OFF);
-
-  const toggle = async () => {
-    const resp = await (await fetch(`${API_URL}pin/${pin}/change`)).text();
-    setState(resp == 'high');
-  };
-
-  const togglePowerMode = (mode) => async () => {
-    if (mode == powerMode) return;
-    const resp = await (
-      await fetch(`${API_URL}power-saver/${pin}/${mode}`)
-    ).text();
-
-    setPowerMode(resp);
-  };
-
-  const getCurrentState = async () => {
-    const currentState = await (await fetch(`${API_URL}pin/${pin}`)).text();
-
-    const powerMode = await (
-      await fetch(`${API_URL}power-saver/${pin}`)
-    ).text();
-
-    setState(currentState == 'high');
-    setPowerMode(powerMode);
-  };
-
-  useEffect(getCurrentState, []);
-
+const Button = ({ label, handler }) => {
   return (
     <div className='shadow-xl card bordered'>
       <div className='flex items-center p-2'>
@@ -128,30 +88,30 @@ const Button = ({ pin, label }) => {
         <input
           type='checkbox'
           className='toggle toggle-primary checkbox-primary toggle-lg'
-          onChange={toggle}
-          checked={!state}
+          onChange={handler?.toggle}
+          checked={!handler?.state}
         />
       </div>
       <div className='border-t btn-group border-primary'>
         <button
           className={`btn btn-xs flex-1 rounded-tl-none ${
-            powerMode == POWER_MODE.OFF ? 'btn-active' : ''
+            handler.powerMode == POWER_MODE.OFF ? 'btn-active' : ''
           }`}
-          onClick={togglePowerMode(POWER_MODE.OFF)}>
+          onClick={handler?.changePowerMode(POWER_MODE.OFF)}>
           OFF
         </button>
         <button
           className={`btn btn-xs flex-1 ${
-            powerMode == POWER_MODE.ON ? 'btn-active' : ''
+            handler.powerMode == POWER_MODE.ON ? 'btn-active' : ''
           }`}
-          onClick={togglePowerMode(POWER_MODE.ON)}>
+          onClick={handler?.changePowerMode(POWER_MODE.ON)}>
           ON
         </button>
         <button
           className={`btn btn-xs flex-1 rounded-tr-none ${
-            powerMode == POWER_MODE.TURBO ? 'btn-active' : ''
+            handler.powerMode == POWER_MODE.TURBO ? 'btn-active' : ''
           }`}
-          onClick={togglePowerMode(POWER_MODE.TURBO)}>
+          onClick={handler?.changePowerMode(POWER_MODE.TURBO)}>
           TURBO
         </button>
       </div>
@@ -160,6 +120,24 @@ const Button = ({ pin, label }) => {
 };
 
 const App = () => {
+  const pins = usePinState(async () => {
+    const pins = [5, 12, 13, 14];
+    let serverStates = {};
+
+    for (const pin of pins) {
+      const state =
+        (await (await fetch(`${API_URL}pin/${pin}`)).text()) == 'high';
+
+      const powerMode = await (
+        await fetch(`${API_URL}power-saver/${pin}`)
+      ).text();
+
+      serverStates[pin] = { state, powerMode };
+    }
+
+    return serverStates;
+  });
+
   return (
     <div>
       <h1 className='py-4 my-4 mt-0 text-2xl font-semibold text-center capitalize text-success bg-base-200'>
@@ -167,10 +145,10 @@ const App = () => {
       </h1>
       <div className='flex flex-col max-w-xs gap-6 mx-auto'>
         <PowerStatus />
-        <Button pin={5} label='Tube Light' />
-        <Button pin={13} label='Secondary Light' />
-        <Button pin={14} label='Ceiling Fan' />
-        <Button pin={12} label='Work Station' />
+        <Button label='Tube Light' handler={pins(5)} />
+        <Button label='Secondary Light' handler={pins(13)} />
+        <Button label='Ceiling Fan' handler={pins(14)} />
+        <Button label='Work Station' handler={pins(12)} />
       </div>
     </div>
   );

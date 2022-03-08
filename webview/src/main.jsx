@@ -1,9 +1,7 @@
 import { createContext, render } from 'preact';
 import { useEffect, useState } from 'preact/compat';
-import { POWER_MODE, POWER_STATE, usePinState } from './Store';
+import { API_URL, POWER_MODE, POWER_STATE, usePinState } from './Store';
 import './index.css';
-
-const API_URL = '/';
 
 function msToTime(ms) {
   // Pad to 2 or 3 digits, default is 2

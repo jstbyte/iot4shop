@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'preact/hooks';
 
-const API_URL = 'http://192.168.43.153/';
+export const API_URL = '/';
 
 export const POWER_MODE = {
   OFF: 'off',

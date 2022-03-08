@@ -3,7 +3,7 @@ import { useEffect, useState } from 'preact/compat';
 import { POWER_MODE, POWER_STATE, usePinState } from './Store';
 import './index.css';
 
-const API_URL = 'http://192.168.43.153/';
+const API_URL = '/';
 
 function msToTime(ms) {
   // Pad to 2 or 3 digits, default is 2
@@ -78,10 +78,15 @@ const PowerStatus = () => {
   );
 };
 
-const Button = ({ label, handler }) => {
+const Button = ({ label, handler, onSelect }) => {
   return (
     <div className='shadow-xl card bordered'>
-      <div className='flex items-center p-2'>
+      <div className='flex items-center p-2 focus:bg-primary/25' tabIndex={1}>
+        <div
+          className='text-2xl btn btn-circle btn-xs btn-warning'
+          onClick={() => onSelect(handler?.pin)}>
+          🕛
+        </div>
         <label className='flex-1 text-lg italic font-semibold text-center text-warning'>
           {label}
         </label>
@@ -119,36 +124,99 @@ const Button = ({ label, handler }) => {
   );
 };
 
+const Uptime = ({ pin }) => {
+  const [pinState, setPinState] = useState({
+    state: false,
+    powerMode: POWER_MODE.OFF,
+    uptime: 0,
+  });
+
+  useEffect(() => {
+    (async () => {
+      const res = await (await fetch(`${API_URL}pin/${pin}`)).json();
+      setPinState(res);
+    })();
+  }, []);
+
+  const otCounteResetHandler = async () => {
+    const result = await (
+      await fetch(`${API_URL}reset-ot-counter/${pin}`)
+    ).text();
+    if (result == 'OK!') setPinState((state) => ({ ...state, uptime: 0 }));
+  };
+
+  return (
+    <div class='text-center'>
+      <div class='text-center font-semibold'>Total Uptime</div>
+      <div class='text-4xl text-error'>{msToTime(pinState.uptime)}</div>
+      <button
+        onClick={otCounteResetHandler}
+        class='btn btn-sm mt-4 btn-warning'>
+        Reset
+      </button>
+    </div>
+  );
+};
+
 const App = () => {
   const pins = usePinState(async () => {
     const pins = [5, 12, 13, 14];
     let serverStates = {};
 
     for (const pin of pins) {
-      const state =
-        (await (await fetch(`${API_URL}pin/${pin}`)).text()) == 'high';
-
-      const powerMode = await (
-        await fetch(`${API_URL}power-saver/${pin}`)
-      ).text();
-
-      serverStates[pin] = { state, powerMode };
+      serverStates[pin] = await (await fetch(`${API_URL}pin/${pin}`)).json();
     }
 
     return serverStates;
   });
+
+  const [selection, setSelection] = useState(-1);
+
+  const onSelectHandler = (pin) => {
+    setSelection((state) => (state == pin ? -1 : pin));
+  };
 
   return (
     <div>
       <h1 className='py-4 my-4 mt-0 text-2xl font-semibold text-center capitalize text-success bg-base-200'>
         JstByte SmartHome
       </h1>
+
       <div className='flex flex-col max-w-xs gap-6 mx-auto'>
         <PowerStatus />
-        <Button label='Tube Light' handler={pins(5)} />
-        <Button label='Secondary Light' handler={pins(13)} />
-        <Button label='Ceiling Fan' handler={pins(14)} />
-        <Button label='Work Station' handler={pins(12)} />
+
+        <div className={`modal ${selection != -1 ? 'modal-open' : ''}`}>
+          <div className='modal-box'>
+            <label
+              onClick={() => setSelection(-1)}
+              for='my-modal-3'
+              className='absolute btn btn-sm btn-circle right-2 top-2 btn-error'>
+              ✕
+            </label>
+            {selection != -1 && <Uptime pin={selection} />}
+          </div>
+        </div>
+
+        <Button
+          label='Tube Light'
+          handler={pins(5)}
+          onSelect={onSelectHandler}
+        />
+        <Button
+          label='Secondary Light'
+          handler={pins(13)}
+          onSelect={onSelectHandler}
+        />
+        <Button
+          label='Ceiling Fan'
+          handler={pins(14)}
+          onSelect={onSelectHandler}
+        />
+        <Button
+          label='Work Station'
+          handler={pins(12)}
+          onSelect={onSelectHandler}
+        />
       </div>
     </div>
   );

@@ -47,6 +47,9 @@ unsigned long long power_changed_time = 0;
 uint8 power_saver[] = {POWER_SAVER_OFF, POWER_SAVER_OFF, POWER_SAVER_OFF, POWER_SAVER_OFF};
 decode_results ir_result;
 
+unsigned long long last_on_time[] = {0, 0, 0, 0};
+unsigned long long total_on_time[] = {0, 0, 0, 0};
+
 uint8_t pinMapToIndex(uint8_t pin)
 {
   switch (pin)
@@ -78,6 +81,22 @@ uint8_t pinFromIndex(uint8_t index)
     return 5;
   default:
     return 2;
+  }
+}
+
+void digitalWriteWithTime(uint8_t pin, bool state)
+{
+  digitalWrite(pin, state);
+
+  uint8_t pinIndex = pinMapToIndex(pin);
+
+  if (!state) // INVERT_FOR_RELAY;
+  {
+    last_on_time[pinIndex] = millis();
+  }
+  else
+  {
+    total_on_time[pinIndex] = total_on_time[pinIndex] + (millis() - last_on_time[pinIndex]);
   }
 }
 
@@ -150,13 +169,13 @@ void pinStateHandler(AsyncWebServerRequest *req)
 
   if (state == "change")
   {
-    digitalWrite(pin, !digitalRead(pin));
+    digitalWriteWithTime(pin, !digitalRead(pin));
     req->send(200, "text/plain", digitalRead(pin) ? "high" : "low");
     return;
   }
   else
   {
-    digitalWrite(pin, (state == "high"));
+    digitalWriteWithTime(pin, (state == "high"));
     req->send(200, "text/plain", "OK!");
   }
 }
@@ -165,7 +184,26 @@ void pinStatusHandler(AsyncWebServerRequest *req)
 {
   /* REG_EX = "^\\/pin\\/(12|13|14|5)$" */
   uint8_t pin = req->pathArg(0).toInt();
-  req->send(200, "text/plain", digitalRead(pin) ? "high" : "low");
+  uint8_t pinIndex = pinMapToIndex(req->pathArg(0).toInt());
+  String ps_mode = (power_saver[pinIndex] == POWER_SAVER_TURBO) ? "turbo"
+                   : (power_saver[pinIndex] == POWER_SAVER_ON)  ? "on"
+                                                                : "off";
+
+  StaticJsonDocument<64> jdoc;
+  jdoc["state"] = (bool)digitalRead(pin);
+  jdoc["powerMode"] = ps_mode;
+  if (!digitalRead(pin)) // INVERT_FOR_RELAY;
+  {
+    jdoc["uptime"] = total_on_time[pinIndex] + (millis() - last_on_time[pinIndex]);
+  }
+  else
+  {
+    jdoc["uptime"] = total_on_time[pinIndex];
+  }
+
+  String result;
+  serializeJson(jdoc, result);
+  req->send(200, "text/plain", result);
 }
 
 void powerStatusHandler(AsyncWebServerRequest *req)
@@ -193,12 +231,26 @@ void powerModeStatusHandler(AsyncWebServerRequest *req)
 {
   /* REG_EX = "^\\/power-saver\\/(12|13|14|5)$" */
   uint8 state = power_saver[pinMapToIndex(req->pathArg(0).toInt())];
-
   String ps_mode = (state == POWER_SAVER_TURBO) ? "turbo"
                    : (state == POWER_SAVER_ON)  ? "on"
                                                 : "off";
 
   req->send(200, "text/plain", ps_mode);
+}
+
+void onTimeResetHandler(AsyncWebServerRequest *req)
+{
+  /* REG_EX = "^\\/reset-ot-counter\\/(12|13|14|5)$" */
+  uint8_t pin = req->pathArg(0).toInt();
+  uint8_t pinIndex = pinMapToIndex(pin);
+
+  total_on_time[pinIndex] = 0;
+
+  if (!digitalRead(pin)) // INVERT_FOR_RELAY;
+  {
+    last_on_time[pinIndex] = millis();
+  }
+  req->send(200, "text/plain", "OK!");
 }
 
 void sendUartMessageHandler(AsyncWebServerRequest *req)
@@ -222,13 +274,13 @@ void powerModeChangeAction(uint8_t pin)
 {
   if (power_saver[pinMapToIndex(pin)] == POWER_SAVER_TURBO)
   {
-    digitalWrite(pin, !power); // RELAY_INVERT;
+    digitalWriteWithTime(pin, !power); // RELAY_INVERT;
     return;
   }
 
   if (!power && power_saver[pinMapToIndex(pin)] == POWER_SAVER_ON)
   {
-    digitalWrite(pin, HIGH); // RELAY_INVERT;
+    digitalWriteWithTime(pin, HIGH); // RELAY_INVERT;
   }
 }
 
@@ -261,7 +313,7 @@ void uartMessageHandler()
   {
     uint8_t pin = message["pin"].as<uint8_t>();
     uint8_t state = message["state"].as<uint8_t>();
-    digitalWrite(pin, (state == 2) ? !digitalRead(pin) : state);
+    digitalWriteWithTime(pin, (state == 2) ? !digitalRead(pin) : state);
   }
 }
 
@@ -272,34 +324,34 @@ void iRemoteHandler()
     switch (ir_result.value)
     {
     case IR_POWER:
-      digitalWrite(5, HIGH);
-      digitalWrite(12, HIGH);
-      digitalWrite(13, HIGH);
-      digitalWrite(14, HIGH);
+      digitalWriteWithTime(5, HIGH);
+      digitalWriteWithTime(12, HIGH);
+      digitalWriteWithTime(13, HIGH);
+      digitalWriteWithTime(14, HIGH);
       break;
     case IR_EQ:
-      digitalWrite(5, LOW);
-      digitalWrite(12, LOW);
-      digitalWrite(13, LOW);
-      digitalWrite(14, LOW);
+      digitalWriteWithTime(5, LOW);
+      digitalWriteWithTime(12, LOW);
+      digitalWriteWithTime(13, LOW);
+      digitalWriteWithTime(14, LOW);
       break;
     case IR_MODE:
-      digitalWrite(5, !digitalRead(5));
-      digitalWrite(12, !digitalRead(12));
-      digitalWrite(13, !digitalRead(13));
-      digitalWrite(14, !digitalRead(14));
+      digitalWriteWithTime(5, !digitalRead(5));
+      digitalWriteWithTime(12, !digitalRead(12));
+      digitalWriteWithTime(13, !digitalRead(13));
+      digitalWriteWithTime(14, !digitalRead(14));
       break;
     case IR_1:
-      digitalWrite(5, !digitalRead(5));
+      digitalWriteWithTime(5, !digitalRead(5));
       break;
     case IR_2:
-      digitalWrite(12, !digitalRead(12));
+      digitalWriteWithTime(12, !digitalRead(12));
       break;
     case IR_3:
-      digitalWrite(13, !digitalRead(13));
+      digitalWriteWithTime(13, !digitalRead(13));
       break;
     case IR_4:
-      digitalWrite(14, !digitalRead(14));
+      digitalWriteWithTime(14, !digitalRead(14));
       break;
     default:
       break;
@@ -347,6 +399,7 @@ void setup()
   server.on("/power", HTTP_GET, powerStatusHandler);
   server.on("^\\/power-saver\\/(12|13|14|5)\\/(on|off|turbo)$", HTTP_GET, powerModeStateHandler);
   server.on("^\\/power-saver\\/(12|13|14|5)$", HTTP_GET, powerModeStatusHandler);
+  server.on("^\\/reset-ot-counter\\/(12|13|14|5)$", HTTP_GET, onTimeResetHandler);
   server.on("/send-message", HTTP_POST, sendUartMessageHandler);
 
   AsyncElegantOTA.begin(&server);

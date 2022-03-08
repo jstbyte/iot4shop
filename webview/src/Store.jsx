@@ -18,18 +18,22 @@ export const usePinState = (getInitialStates) => {
     5: {
       state: true,
       powerMode: POWER_MODE.OFF,
+      uptime: 0,
     },
     12: {
       state: true,
       powerMode: POWER_MODE.OFF,
+      uptime: 0,
     },
     13: {
       state: true,
       powerMode: POWER_MODE.OFF,
+      uptime: 0,
     },
     14: {
       state: true,
       powerMode: POWER_MODE.OFF,
+      uptime: 0,
     },
   });
 
@@ -38,7 +42,7 @@ export const usePinState = (getInitialStates) => {
 
     setPinStates((state) => ({
       ...state,
-      [pin]: { powerMode: state[pin].powerMode, state: resp == 'high' },
+      [pin]: { ...state[pin], state: resp == 'high' },
     }));
   };
 
@@ -50,7 +54,7 @@ export const usePinState = (getInitialStates) => {
 
     setPinStates((state) => ({
       ...state,
-      [pin]: { state: state[pin].state, powerMode: resp },
+      [pin]: { ...state[pin], powerMode: resp },
     }));
   };
 
@@ -62,10 +66,12 @@ export const usePinState = (getInitialStates) => {
   }, []);
 
   return (pin) => ({
+    pin,
     pinStates,
     setPinStates,
     state: pinStates[pin].state,
     powerMode: pinStates[pin].powerMode,
+    uptime: pinStates[pin].uptime,
     toggle: () => togglePin(pin),
     changePowerMode: (powerMode) => () => changePowerMode(pin, powerMode),
   });

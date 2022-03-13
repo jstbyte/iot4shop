@@ -23,3 +23,15 @@ body {
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Animations */
+
+.fan {
+  animation: rotate 1s infinite linear;
+}
+
+@keyframes rotate {
+  100% {
+    transform: rotate(360deg);
+  }
+}

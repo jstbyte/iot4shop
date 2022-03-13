@@ -1,4 +1,4 @@
-import { createContext, render } from 'preact';
+import { render } from 'preact';
 import { useEffect, useState } from 'preact/compat';
 import { API_URL, POWER_MODE, POWER_STATE, usePinState } from './Store';
 import './index.css';
@@ -66,34 +66,87 @@ const PowerStatus = () => {
         </div>
         <div
           className={`flex-[0.3] h-16 italic flex justify-center items-center text-2xl text-black font-bold active:opacity-50 cursor-pointer ${
-            power.state == POWER_STATE.AC ? 'bg-success' : 'bg-error'
+            power.state == POWER_STATE.AC ? 'bg-success/50' : 'bg-error/50'
           }`}
           onClick={getStatus}>
-          {power.state}
+          <img
+            class='p-3'
+            src={
+              power.state == POWER_STATE.AC
+                ? '/assets/ac.png'
+                : '/assets/dc.png'
+            }
+          />
         </div>
       </div>
     </div>
   );
 };
 
-const Button = ({ label, handler, onSelect }) => {
+const FanIcon = ({ onClick, state }) => (
+  <img
+    className={`object-contain border border-primary rounded-full w-10 ${
+      state ? 'bg-gray-500' : 'fan bg-white'
+    }`}
+    src='/assets/fan.png'
+    alt=''
+    onClick={onClick}
+  />
+);
+
+const TubeLightIcon = ({ onClick, state }) => (
+  <img
+    class={`rounded-full p-1 border border-primary w-10 transition-all ${
+      state ? 'bg-gray-500' : 'bg-white shadow-2xl shadow-pink-500 rotate-180'
+    }`}
+    src='/assets/bulb.png'
+    onClick={onClick}
+  />
+);
+
+const PlugIcon = ({ onClick, state }) => {
   return (
-    <div className='shadow-xl card bordered'>
+    <div
+      class={`w-10 h-full relative rounded-full overflow-hidden border border-primary ${
+        state ? 'bg-gray-500' : 'bg-white'
+      }`}
+      onClick={onClick}>
+      <img
+        className={`absolute inset-0 transition-all ${
+          state
+            ? '-translate-x-4 translate-y-4'
+            : 'translate-x-1 -translate-y-1'
+        }`}
+        src='/assets/plug-male.png'
+      />
+      <img
+        className={`absolute inset-0 transition-all ${
+          state ? 'scale-150 -translate-x-2 translate-y-2' : ''
+        }`}
+        src='/assets/plug-female.png'
+      />
+    </div>
+  );
+};
+
+const Switch = ({ label, handler, onSelect, View }) => {
+  return (
+    <div className='shadow-xl cursor-pointer card bordered'>
       <div className='flex items-center p-2 focus:bg-primary/25' tabIndex={1}>
         <div
-          className='text-2xl btn btn-circle btn-xs btn-warning'
+          className='text-2xl btn btn-circle btn-xs btn-ghost'
           onClick={() => onSelect(handler?.pin)}>
           🕛
         </div>
         <label className='flex-1 text-lg italic font-semibold text-center text-warning'>
           {label}
         </label>
-        <input
-          type='checkbox'
-          className='toggle toggle-primary checkbox-primary toggle-lg'
-          onChange={handler?.toggle}
-          checked={!handler?.state}
-        />
+        <div
+          className={`h-10 overflow-hidden rounded-full active:scale-95 hover:ring-2 ring-primary ${
+            handler?.state ? 'shadow-black' : 'shadow-white shadow-md'
+          }`}>
+          <View state={handler?.state} onClick={handler?.toggle} />
+        </div>
       </div>
       <div className='border-t btn-group border-primary'>
         <button
@@ -195,25 +248,29 @@ const App = () => {
           </div>
         </div>
 
-        <Button
+        <Switch
           label='Tube Light'
           handler={pins(5)}
           onSelect={onSelectHandler}
+          View={TubeLightIcon}
         />
-        <Button
-          label='Secondary Light'
+        <Switch
+          label='Ceiling Fan'
           handler={pins(13)}
           onSelect={onSelectHandler}
+          View={FanIcon}
         />
-        <Button
-          label='Ceiling Fan'
+        <Switch
+          label='Secondary Light'
           handler={pins(14)}
           onSelect={onSelectHandler}
+          View={TubeLightIcon}
         />
-        <Button
+        <Switch
           label='Work Station'
           handler={pins(12)}
           onSelect={onSelectHandler}
+          View={PlugIcon}
         />
       </div>
     </div>

@@ -35,8 +35,8 @@ enum power_saver_mode_t
 };
 
 /* Global Refs */
-const char *ssid_sta = "A29";
-const char *password = "A29Password";
+const char *ssid_sta = "";
+const char *password = "";
 
 AsyncWebServer server(80);
 IRrecv irrecv(4);
@@ -253,12 +253,17 @@ void onTimeResetHandler(AsyncWebServerRequest *req)
   req->send(200, "text/plain", "OK!");
 }
 
-void sendUartMessageHandler(AsyncWebServerRequest *req)
+void sendUartMessageHandler(AsyncWebServerRequest *req, uint8_t *data, size_t len, size_t index, size_t total)
 {
-  if (req->hasParam("message", true))
+  StaticJsonDocument<128> _json;
+  if (deserializeJson(_json, data, len))
   {
-    Serial.println(req->getParam("message", true)->value());
+    req->send(404, "text/plain", "ERROR!");
+    return;
   }
+
+  serializeMsgPack(_json, Serial);
+
   req->send(200, "text/plain", "OK!");
 }
 
@@ -400,7 +405,8 @@ void setup()
   server.on("^\\/power-saver\\/(12|13|14|5)\\/(on|off|turbo)$", HTTP_GET, powerModeStateHandler);
   server.on("^\\/power-saver\\/(12|13|14|5)$", HTTP_GET, powerModeStatusHandler);
   server.on("^\\/reset-ot-counter\\/(12|13|14|5)$", HTTP_GET, onTimeResetHandler);
-  server.on("/send-message", HTTP_POST, sendUartMessageHandler);
+  server.on(
+      "/send-message", HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL, sendUartMessageHandler);
 
   AsyncElegantOTA.begin(&server);
   server.onNotFound(notFoundHandler);

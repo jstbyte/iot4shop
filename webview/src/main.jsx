@@ -249,12 +249,6 @@ const App = () => {
         </div>
 
         <Switch
-          label='Tube Light'
-          handler={pins(5)}
-          onSelect={onSelectHandler}
-          View={TubeLightIcon}
-        />
-        <Switch
           label='Ceiling Fan'
           handler={pins(13)}
           onSelect={onSelectHandler}

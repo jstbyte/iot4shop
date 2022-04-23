@@ -16,7 +16,7 @@ void setup()
     esp_now_init();
 
     esp_now_set_self_role(ESP_NOW_ROLE_SLAVE);
-    esp_now_add_peer(broadcastAddress, ESP_NOW_ROLE_SLAVE, 1, NULL, 0);
+    esp_now_add_peer(broadcastAddress, ESP_NOW_ROLE_COMBO, 1, NULL, 0);
 
     StaticJsonDocument<32> jdoc;
     jdoc["cmd"] = "POWER_STATE";
